@@ -437,6 +437,446 @@
    }
   ]
  },
+ "heldout": {
+  "ledger_vs_oracle_disagreements": [],
+  "graph": {
+   "correct_choice": "12/12",
+   "stale_reuse": 0,
+   "unwarranted_refusal": 0,
+   "correct_unknown": "3/3",
+   "exact_applicable_set": "12/12"
+  },
+  "baseline": {
+   "correct_choice": "9/12",
+   "stale_reuse": 3,
+   "unwarranted_refusal": 0,
+   "correct_unknown": "1/3"
+  },
+  "cases": [
+   {
+    "id": "h01",
+    "tenant": "acme",
+    "version": "checkout@2",
+    "symptom": "sessions-lost",
+    "expect": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1"
+     ]
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1"
+     ]
+    },
+    "baseline": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1"
+     ]
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    }
+   },
+   {
+    "id": "h02",
+    "tenant": "acme",
+    "version": "checkout@1",
+    "symptom": "sessions-lost",
+    "expect": {
+     "status": "UNKNOWN",
+     "procedures": []
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "UNKNOWN",
+     "procedures": []
+    },
+    "baseline": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1"
+     ]
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": false,
+     "stale_reuse": true,
+     "unwarranted_refusal": false
+    }
+   },
+   {
+    "id": "h03",
+    "tenant": "acme",
+    "version": "checkout@2",
+    "symptom": "sessions-lost",
+    "expect": {
+     "status": "ANSWER",
+     "procedures": [
+      "P2"
+     ]
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "ANSWER",
+     "procedures": [
+      "P2"
+     ]
+    },
+    "baseline": {
+     "status": "ANSWER",
+     "procedures": [
+      "P2"
+     ]
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    }
+   },
+   {
+    "id": "h04",
+    "tenant": "acme",
+    "version": "checkout@1",
+    "symptom": "orders-stuck",
+    "expect": {
+     "status": "ANSWER",
+     "procedures": [
+      "P6"
+     ]
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "ANSWER",
+     "procedures": [
+      "P6"
+     ]
+    },
+    "baseline": {
+     "status": "ANSWER",
+     "procedures": [
+      "P6"
+     ]
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    }
+   },
+   {
+    "id": "h05",
+    "tenant": "initech",
+    "version": "checkout@1",
+    "symptom": "sessions-lost",
+    "expect": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1"
+     ]
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1"
+     ]
+    },
+    "baseline": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1"
+     ]
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    }
+   },
+   {
+    "id": "h06",
+    "tenant": "initech",
+    "version": "checkout@2",
+    "symptom": "sessions-lost",
+    "expect": {
+     "status": "UNKNOWN",
+     "procedures": []
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "UNKNOWN",
+     "procedures": []
+    },
+    "baseline": {
+     "status": "UNKNOWN",
+     "procedures": []
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    }
+   },
+   {
+    "id": "h07",
+    "tenant": "acme",
+    "version": "checkout@2",
+    "symptom": "orders-stuck",
+    "expect": {
+     "status": "ANSWER",
+     "procedures": [
+      "P3"
+     ]
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "ANSWER",
+     "procedures": [
+      "P3"
+     ]
+    },
+    "baseline": {
+     "status": "ANSWER",
+     "procedures": [
+      "P7"
+     ]
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": false,
+     "stale_reuse": true,
+     "unwarranted_refusal": false
+    }
+   },
+   {
+    "id": "h08",
+    "tenant": "acme",
+    "version": "checkout@1",
+    "symptom": "sessions-lost",
+    "expect": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1"
+     ]
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1"
+     ]
+    },
+    "baseline": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1"
+     ]
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    }
+   },
+   {
+    "id": "h09",
+    "tenant": "acme",
+    "version": "checkout@2",
+    "symptom": "sessions-lost",
+    "expect": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1",
+      "P2",
+      "P4"
+     ]
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "ANSWER",
+     "procedures": [
+      "P1",
+      "P2",
+      "P4"
+     ]
+    },
+    "baseline": {
+     "status": "ANSWER",
+     "procedures": [
+      "P2"
+     ]
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    }
+   },
+   {
+    "id": "h10",
+    "tenant": "acme",
+    "version": "checkout@1",
+    "symptom": "sessions-lost",
+    "expect": {
+     "status": "ANSWER",
+     "procedures": [
+      "P9"
+     ]
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "ANSWER",
+     "procedures": [
+      "P9"
+     ]
+    },
+    "baseline": {
+     "status": "ANSWER",
+     "procedures": [
+      "P9"
+     ]
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    }
+   },
+   {
+    "id": "h11",
+    "tenant": "acme",
+    "version": "checkout@2",
+    "symptom": "sessions-lost",
+    "expect": {
+     "status": "UNKNOWN",
+     "procedures": []
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "UNKNOWN",
+     "procedures": []
+    },
+    "baseline": {
+     "status": "ANSWER",
+     "procedures": [
+      "P2"
+     ]
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": false,
+     "stale_reuse": true,
+     "unwarranted_refusal": false
+    }
+   },
+   {
+    "id": "h12",
+    "tenant": "acme",
+    "version": "checkout@1",
+    "symptom": "orders-stuck",
+    "expect": {
+     "status": "ANSWER",
+     "procedures": [
+      "P3"
+     ]
+    },
+    "ledger_agrees_with_oracle": true,
+    "graph_exact": true,
+    "graph": {
+     "status": "ANSWER",
+     "procedures": [
+      "P3"
+     ]
+    },
+    "baseline": {
+     "status": "ANSWER",
+     "procedures": [
+      "P3"
+     ]
+    },
+    "graph_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    },
+    "baseline_grade": {
+     "correct": true,
+     "stale_reuse": false,
+     "unwarranted_refusal": false
+    }
+   }
+  ]
+ },
  "invariants": {
   "second_claim_rejected": true,
   "wrong_tenant_claim_rejected": true,
