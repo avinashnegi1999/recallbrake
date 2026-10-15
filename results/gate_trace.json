@@ -1,5 +1,5 @@
 {
- "query": "\nMATCH (t:Tenant {id:$tenant})-[:HAS_PROCEDURE]->(p:Procedure)-[:APPLIES_TO]->(:ComponentVersion {id:$cv})\nMATCH (:Attempt {result:'success'})-[:PRODUCED]->(p)\nWITH DISTINCT p\nOPTIONAL MATCH (p)-[:REQUIRES]->(a:Assumption)-[:HAS_REVISION]->(r:EvidenceRevision)\nWITH p, a, collect([r.rev, r.holds]) AS revs\nWITH p, a, reduce(best = [0, null], x IN revs | CASE WHEN x[0] > best[0] THEN x ELSE best END) AS latest\nWITH p, collect(CASE WHEN a IS NULL THEN NULL ELSE {assumption:a.id, rev:latest[0], holds:latest[1]} END) AS reqs\nRETURN p.id AS procedure, p.title AS title, reqs,\n       all(x IN reqs WHERE x.holds = true) AS applicable\nORDER BY procedure\n",
+ "query": "\nMATCH (t:Tenant {id:$tenant})-[:HAS_PROCEDURE]->(p:Procedure)-[:APPLIES_TO]->(:ComponentVersion {id:$cv})\nWHERE $symptom IS NULL OR p.fixes = $symptom\nMATCH (at:Attempt)-[:PRODUCED]->(p)\nWITH p, collect(at.result) AS results, collect(at.id) AS attempts\nWITH p, attempts, any(r IN results WHERE r = 'success') AS proven\nOPTIONAL MATCH (p)-[:REQUIRES]->(a:Assumption)-[:HAS_REVISION]->(r:EvidenceRevision)\nWITH p, attempts, proven, a, collect([r.rev, r.holds, r.note]) AS revs\nWITH p, attempts, proven, a, reduce(best = [0, null, null], x IN revs | CASE WHEN x[0] > best[0] THEN x ELSE best END) AS latest\nWITH p, attempts, proven,\n     collect(CASE WHEN a IS NULL THEN NULL ELSE {assumption:a.id, text:a.text, rev:latest[0], holds:latest[1], note:latest[2]} END) AS needs\nRETURN p.id AS procedure, p.title AS title, p.fixes AS fixes, attempts, proven, needs,\n       proven AND all(x IN needs WHERE x.holds = true) AS applicable\nORDER BY procedure\n",
  "trace": {
   "seed": {
    "seeded": true
@@ -15,11 +15,18 @@
     {
      "procedure": "P1",
      "title": "Restart the cache worker",
-     "reqs": [
+     "fixes": "sessions-lost",
+     "attempts": [
+      "A1"
+     ],
+     "proven": true,
+     "needs": [
       {
        "assumption": "S1",
+       "text": "Checkout cache runs Redis 6",
        "rev": 1,
-       "holds": true
+       "holds": true,
+       "note": "initial observation"
       }
      ],
      "applicable": true
@@ -27,14 +34,32 @@
     {
      "procedure": "P2",
      "title": "Drain the queue, then restart",
-     "reqs": [
+     "fixes": "orders-stuck",
+     "attempts": [
+      "A2"
+     ],
+     "proven": true,
+     "needs": [
       {
        "assumption": "S2",
+       "text": "Order queue delivers at least once",
        "rev": 1,
-       "holds": true
+       "holds": true,
+       "note": "initial observation"
       }
      ],
      "applicable": true
+    },
+    {
+     "procedure": "P3",
+     "title": "Clear all browser cookies",
+     "fixes": "sessions-lost",
+     "attempts": [
+      "A3"
+     ],
+     "proven": false,
+     "needs": [],
+     "applicable": false
     }
    ]
   },
@@ -52,11 +77,18 @@
     {
      "procedure": "P1",
      "title": "Restart the cache worker",
-     "reqs": [
+     "fixes": "sessions-lost",
+     "attempts": [
+      "A1"
+     ],
+     "proven": true,
+     "needs": [
       {
        "assumption": "S1",
+       "text": "Checkout cache runs Redis 6",
        "rev": 2,
-       "holds": false
+       "holds": false,
+       "note": "Redis upgraded to 7: restarting the worker no longer clears sessions"
       }
      ],
      "applicable": false
@@ -64,14 +96,32 @@
     {
      "procedure": "P2",
      "title": "Drain the queue, then restart",
-     "reqs": [
+     "fixes": "orders-stuck",
+     "attempts": [
+      "A2"
+     ],
+     "proven": true,
+     "needs": [
       {
        "assumption": "S2",
+       "text": "Order queue delivers at least once",
        "rev": 1,
-       "holds": true
+       "holds": true,
+       "note": "initial observation"
       }
      ],
      "applicable": true
+    },
+    {
+     "procedure": "P3",
+     "title": "Clear all browser cookies",
+     "fixes": "sessions-lost",
+     "attempts": [
+      "A3"
+     ],
+     "proven": false,
+     "needs": [],
+     "applicable": false
     }
    ]
   },
@@ -84,7 +134,7 @@
     },
     "agent-a": {
      "ok": false,
-     "reason": "already claimed or done"
+     "reason": "not available: already claimed, done, or not this tenant's task"
     }
    },
    "owners": 1,
@@ -94,13 +144,13 @@
      "owner": "agent-b",
      "gen": 1,
      "snapshot": 1,
-     "cur": 1,
+     "current": 1,
      "done": null
     }
    },
    "wrong_tenant_claim": {
     "ok": false,
-    "reason": "already claimed or done"
+    "reason": "not available: already claimed, done, or not this tenant's task"
    },
    "stale_complete": {
     "ok": false,
@@ -108,7 +158,7 @@
      "owner": "agent-b",
      "gen": 1,
      "snapshot": 1,
-     "cur": 2,
+     "current": 2,
      "done": null
     }
    }

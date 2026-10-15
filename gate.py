@@ -13,28 +13,20 @@ HERE = Path(__file__).parent
 
 def seed():
     g = rb.connect(G)
-    try:
-        g.delete()
-    except Exception:
-        pass
-    g.query("""CREATE (:Tenant {id:'acme'}), (:Tenant {id:'globex'}),
-                      (:ComponentVersion {id:'checkout@1'}), (:ComponentVersion {id:'checkout@2'}),
-                      (:Assumption {id:'S1', text:'Checkout cache runs Redis 6'}),
-                      (:Assumption {id:'S2', text:'Order queue delivers at least once'}),
-                      (:Assumption {id:'S3', text:'Dashboard uses the light theme'})""")
-    w = rb.Writer(g)
-    for a in ("S1", "S2", "S3"):
-        w.revise(a, True, "initial observation")
-    # agent A: two validated successes -> two scoped procedures
-    w.record_success("acme", "C1", "A1", "agent-a", "P1", "Restart the cache worker", "checkout@1", ["S1"])
-    w.record_success("acme", "C2", "A2", "agent-a", "P2", "Drain the queue, then restart", "checkout@1", ["S2"])
-    # a failed attempt must never become reusable memory
-    g.query("""MATCH (t:Tenant {id:'acme'}), (v:ComponentVersion {id:'checkout@1'})
-               CREATE (t)-[:HAS_CASE]->(:Case {id:'C3'})-[:TRIED]->(:Attempt {id:'A3', agent:'agent-a', result:'failure'})
-                      -[:PRODUCED]->(p:Procedure {id:'P3', title:'Clear all browser cookies'}),
-                      (t)-[:HAS_PROCEDURE]->(p), (p)-[:APPLIES_TO]->(v)""")
-    g.query("""MATCH (t:Tenant {id:'acme'}), (a:Assumption {id:'S2'})
-               CREATE (t)-[:HAS_TASK]->(:Task {id:'T1', title:'Re-run order sync'})-[:DEPENDS_ON]->(a)""")
+    E = [{"op": "tenant", "id": "acme"}, {"op": "tenant", "id": "globex"},
+         {"op": "version", "id": "checkout@1"}, {"op": "version", "id": "checkout@2"},
+         {"op": "assumption", "tenant": "acme", "id": "S1", "text": "Checkout cache runs Redis 6"},
+         {"op": "assumption", "tenant": "acme", "id": "S2", "text": "Order queue delivers at least once"},
+         {"op": "assumption", "tenant": "acme", "id": "S3", "text": "Dashboard uses the light theme"}]
+    E += [{"op": "revise", "tenant": "acme", "id": a, "holds": True, "note": "initial observation"} for a in ("S1", "S2", "S3")]
+    E += [{"op": "success", "tenant": "acme", "case": "C1", "symptom": "sessions-lost", "attempt": "A1", "agent": "agent-a",
+           "procedure": "P1", "title": "Restart the cache worker", "versions": ["checkout@1"], "requires": ["S1"]},
+          {"op": "success", "tenant": "acme", "case": "C2", "symptom": "orders-stuck", "attempt": "A2", "agent": "agent-a",
+           "procedure": "P2", "title": "Drain the queue, then restart", "versions": ["checkout@1"], "requires": ["S2"]},
+          {"op": "failure", "tenant": "acme", "case": "C3", "symptom": "sessions-lost", "attempt": "A3", "agent": "agent-a",
+           "procedure": "P3", "title": "Clear all browser cookies", "versions": ["checkout@1"]},
+          {"op": "task", "tenant": "acme", "id": "T1", "title": "Re-run order sync", "depends_on": "S2"}]
+    rb.load(g, E)
     return {"seeded": True}
 
 
@@ -47,8 +39,8 @@ def look():
 
 def change():
     w = rb.Writer(rb.connect(G))
-    return {"S1": w.revise("S1", False, "Redis upgraded to 7: restarting the worker no longer clears sessions"),
-            "S3": w.revise("S3", False, "Dashboard switched to dark theme (irrelevant to checkout)")}
+    return {"S1": w.revise("acme", "S1", False, "Redis upgraded to 7: restarting the worker no longer clears sessions"),
+            "S3": w.revise("acme", "S3", False, "Dashboard switched to dark theme (irrelevant to checkout)")}
 
 
 def claims():
@@ -69,7 +61,7 @@ def claims():
         gen, snap = got[winner]["gen"], got[winner]["snapshot"]
         out["wrong_owner_complete"] = w.complete("acme", "T1", loser, gen, snap)
         out["wrong_tenant_claim"] = w.claim("globex", "T1", "agent-x")
-        w.revise("S2", True, "queue re-verified after a config change")  # evidence changes before completion
+        w.revise("acme", "S2", True, "queue re-verified after a config change")  # evidence changes before completion
         out["stale_complete"] = w.complete("acme", "T1", winner, gen, snap)
     return out
 
@@ -110,6 +102,6 @@ if __name__ == "__main__":
         fails.append("another tenant claimed the task")
     print(json.dumps({k: v for k, v in trace.items() if k != "seed"}, indent=1, default=str))
     os.makedirs(HERE / "results", exist_ok=True)
-    (HERE / "results" / "gate_trace.json").write_text(json.dumps({"query": rb.APPLICABLE, "trace": trace, "failures": fails}, indent=1, default=str))
+    (HERE / "results" / "gate_trace.json").write_text(json.dumps({"query": rb.PROCEDURES, "trace": trace, "failures": fails}, indent=1, default=str))
     print("FAILURES:", fails or "none")
     print("GATE", "PASS" if not fails else "FAIL")
