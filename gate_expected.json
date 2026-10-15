@@ -1,0 +1,5 @@
+{
+ "note": "Hand-authored expected state, independent of the queries.",
+ "before": {"acme@1": ["P1", "P2"], "acme@2": [], "globex@1": []},
+ "after": {"acme@1": ["P2"], "acme@2": [], "globex@1": []}
+}

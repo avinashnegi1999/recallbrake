@@ -1,0 +1,118 @@
+{
+ "query": "\nMATCH (t:Tenant {id:$tenant})-[:HAS_PROCEDURE]->(p:Procedure)-[:APPLIES_TO]->(:ComponentVersion {id:$cv})\nMATCH (:Attempt {result:'success'})-[:PRODUCED]->(p)\nWITH DISTINCT p\nOPTIONAL MATCH (p)-[:REQUIRES]->(a:Assumption)-[:HAS_REVISION]->(r:EvidenceRevision)\nWITH p, a, collect([r.rev, r.holds]) AS revs\nWITH p, a, reduce(best = [0, null], x IN revs | CASE WHEN x[0] > best[0] THEN x ELSE best END) AS latest\nWITH p, collect(CASE WHEN a IS NULL THEN NULL ELSE {assumption:a.id, rev:latest[0], holds:latest[1]} END) AS reqs\nRETURN p.id AS procedure, p.title AS title, reqs,\n       all(x IN reqs WHERE x.holds = true) AS applicable\nORDER BY procedure\n",
+ "trace": {
+  "seed": {
+   "seeded": true
+  },
+  "before": {
+   "acme@1": [
+    "P1",
+    "P2"
+   ],
+   "acme@2": [],
+   "globex@1": [],
+   "why_acme@1": [
+    {
+     "procedure": "P1",
+     "title": "Restart the cache worker",
+     "reqs": [
+      {
+       "assumption": "S1",
+       "rev": 1,
+       "holds": true
+      }
+     ],
+     "applicable": true
+    },
+    {
+     "procedure": "P2",
+     "title": "Drain the queue, then restart",
+     "reqs": [
+      {
+       "assumption": "S2",
+       "rev": 1,
+       "holds": true
+      }
+     ],
+     "applicable": true
+    }
+   ]
+  },
+  "change": {
+   "S1": 2,
+   "S3": 2
+  },
+  "after": {
+   "acme@1": [
+    "P2"
+   ],
+   "acme@2": [],
+   "globex@1": [],
+   "why_acme@1": [
+    {
+     "procedure": "P1",
+     "title": "Restart the cache worker",
+     "reqs": [
+      {
+       "assumption": "S1",
+       "rev": 2,
+       "holds": false
+      }
+     ],
+     "applicable": false
+    },
+    {
+     "procedure": "P2",
+     "title": "Drain the queue, then restart",
+     "reqs": [
+      {
+       "assumption": "S2",
+       "rev": 1,
+       "holds": true
+      }
+     ],
+     "applicable": true
+    }
+   ]
+  },
+  "claims": {
+   "claims": {
+    "agent-b": {
+     "ok": true,
+     "gen": 1,
+     "snapshot": 1
+    },
+    "agent-a": {
+     "ok": false,
+     "reason": "already claimed or done"
+    }
+   },
+   "owners": 1,
+   "wrong_owner_complete": {
+    "ok": false,
+    "state": {
+     "owner": "agent-b",
+     "gen": 1,
+     "snapshot": 1,
+     "cur": 1,
+     "done": null
+    }
+   },
+   "wrong_tenant_claim": {
+    "ok": false,
+    "reason": "already claimed or done"
+   },
+   "stale_complete": {
+    "ok": false,
+    "state": {
+     "owner": "agent-b",
+     "gen": 1,
+     "snapshot": 1,
+     "cur": 2,
+     "done": null
+    }
+   }
+  }
+ },
+ "failures": []
+}
