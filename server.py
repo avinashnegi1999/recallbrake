@@ -57,7 +57,7 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
-        global W
+        global W, RACES
         if not self._local():
             return self._json({"error": "forbidden"}, 403)
         n = int(self.headers.get("Content-Length") or 0)
@@ -67,12 +67,10 @@ class Handler(SimpleHTTPRequestHandler):
                 ev = {k: v for k, v in STEPS[body["step"]].items() if k != "label"}
                 return self._json({"rev": rb.apply(W, ev)})
             if self.path == "/api/reset":
-                global RACES
                 RACES = 0
                 W = rb.load(G, BASE)
                 return self._json({"ok": True})
             if self.path == "/api/race":
-                global RACES
                 RACES += 1
                 tid = f"T-race{RACES}"   # a fresh task each run, so the team's memory is left as it is
                 W.task("acme", tid, "Re-run the order sync", "S2")
