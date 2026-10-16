@@ -27,6 +27,7 @@ STEPS = {
               "note": "Keys moved into app config"},
 }
 LOCK = threading.Lock()
+RACES = 0
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -69,26 +70,28 @@ class Handler(SimpleHTTPRequestHandler):
                 W = rb.load(G, BASE)
                 return self._json({"ok": True})
             if self.path == "/api/race":
-                W = rb.load(G, BASE)
+                global RACES
+                RACES += 1
+                tid = f"T-race{RACES}"   # a fresh task each run, so the team's memory is left as it is
+                W.task("acme", tid, "Re-run the order sync", "S2")
                 got, bar = {}, threading.Barrier(2)
 
                 def go(a):
                     bar.wait()
-                    got[a] = W.claim("acme", "T1", a)
+                    got[a] = W.claim("acme", tid, a)
                 ts = [threading.Thread(target=go, args=(a,)) for a in ("agent-a", "agent-b")]
                 [t.start() for t in ts]
                 [t.join() for t in ts]
                 win = next(a for a, r in got.items() if r["ok"])
-                log = [{"who": a, "did": "claim T1", "ok": r["ok"]} for a, r in got.items()]
+                log = [{"who": a, "did": f"claim {tid}", "ok": r["ok"]} for a, r in got.items()]
                 rev = W.revise("acme", "S2", True, "Queue re-verified after a config change")
-                log.append({"who": "ops", "did": f"evidence for T1 changes (revision {rev})", "ok": True})
-                stale = W.complete("acme", "T1", win, got[win]["gen"], got[win]["snapshot"])
-                log.append({"who": win, "did": "complete T1 with the old snapshot", "ok": stale["ok"]})
-                W.release("acme", "T1", win)
-                c = W.claim("acme", "T1", win)
+                log.append({"who": "ops", "did": f"evidence for {tid} changes (revision {rev})", "ok": True})
+                stale = W.complete("acme", tid, win, got[win]["gen"], got[win]["snapshot"])
+                log.append({"who": win, "did": f"complete {tid} with the old snapshot", "ok": stale["ok"]})
+                W.release("acme", tid, win)
+                c = W.claim("acme", tid, win)
                 log.append({"who": win, "did": "re-claim with fresh evidence", "ok": c["ok"]})
-                log.append({"who": win, "did": "complete T1", "ok": W.complete("acme", "T1", win, c["gen"], c["snapshot"])["ok"]})
-                W = rb.load(G, BASE)
+                log.append({"who": win, "did": f"complete {tid}", "ok": W.complete("acme", tid, win, c["gen"], c["snapshot"])["ok"]})
                 return self._json({"log": log})
         return self._json({"error": "unknown"}, 404)
 

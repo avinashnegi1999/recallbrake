@@ -1,0 +1,53 @@
+{
+ "steps": [
+  {
+   "step": "agent A solves the case",
+   "tries": [
+    {
+     "procedure": "R2",
+     "result": "failure"
+    },
+    {
+     "procedure": "R1",
+     "result": "success"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "step": "agent B restarts and reuses A's fix",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "R1",
+    "explanation": "R1 is the only proven applicable procedure for sessions-lost on checkout@2. It previously succeeded, is marked applicable for this version/symptom, and its required assumption still holds (checkout session cache runs Redis 6; latest evidence confirms Redis 6.2 on all cache nodes)."
+   },
+   "reusable": [
+    "R1"
+   ],
+   "pass": true
+  },
+  {
+   "step": "irrelevant change: B still reuses it",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "R1",
+    "explanation": "R1 is a proven fix for sessions-lost on checkout@2, and its only assumption still holds: the checkout session cache runs Redis 6, confirmed as Redis 6.2 on all cache nodes."
+   },
+   "pass": true
+  },
+  {
+   "step": "relevant change: B refuses the stale fix",
+   "answer": {
+    "status": "UNKNOWN",
+    "explanation": "No remembered procedure is safe to reuse for checkout@2 sessions-lost. The only proven procedure (R1, restart the session cache worker) is now inapplicable because its required assumption no longer holds: the checkout session cache is on Redis 7, and evidence says a worker restart no longer restores sessions. The other remembered procedure (R2) was not proven and is not marked applicable."
+   },
+   "reusable": [],
+   "pass": true
+  }
+ ],
+ "usage": {
+  "requests": 13,
+  "in": 7926,
+  "out": 609
+ }
+}

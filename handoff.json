@@ -1,0 +1,21 @@
+{
+ "note": "Two-agent handoff on a fresh team with empty memory. Agent A solves a case by trying runbook fixes; the simulator decides whether each try works. Agent B then starts in a new process and must reuse, or refuse, what A proved.",
+ "tenant": "umbrella",
+ "setup": [
+  {"op": "tenant", "id": "umbrella"}, {"op": "version", "id": "checkout@1"}, {"op": "version", "id": "checkout@2"},
+  {"op": "assumption", "tenant": "umbrella", "id": "U1", "text": "Checkout session cache runs Redis 6"},
+  {"op": "assumption", "tenant": "umbrella", "id": "U4", "text": "Session signing keys live in the vault"},
+  {"op": "assumption", "tenant": "umbrella", "id": "U9", "text": "Ops dashboard uses the light theme"},
+  {"op": "revise", "tenant": "umbrella", "id": "U1", "holds": true, "note": "Redis 6.2 on all cache nodes"},
+  {"op": "revise", "tenant": "umbrella", "id": "U4", "holds": false, "note": "Keys are in app config, not the vault"},
+  {"op": "revise", "tenant": "umbrella", "id": "U9", "holds": true, "note": "Light theme"}
+ ],
+ "runbook": [
+  {"procedure": "R2", "title": "Ask users to clear their cookies", "symptom": "sessions-lost", "versions": ["checkout@1", "checkout@2"], "requires": [], "works": false},
+  {"procedure": "R3", "title": "Rotate the session signing keys", "symptom": "sessions-lost", "versions": ["checkout@2"], "requires": ["U4"], "works": true},
+  {"procedure": "R1", "title": "Restart the session cache worker", "symptom": "sessions-lost", "versions": ["checkout@1", "checkout@2"], "requires": ["U1"], "works": true}
+ ],
+ "case": {"case": "U-C1", "version": "checkout@2", "symptom": "sessions-lost"},
+ "relevant_change": {"op": "revise", "tenant": "umbrella", "id": "U1", "holds": false, "note": "Cache upgraded to Redis 7; a worker restart no longer restores sessions"},
+ "irrelevant_change": {"op": "revise", "tenant": "umbrella", "id": "U9", "holds": false, "note": "Dashboard switched to dark theme"}
+}

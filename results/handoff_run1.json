@@ -1,0 +1,53 @@
+{
+ "steps": [
+  {
+   "step": "agent A solves the case",
+   "tries": [
+    {
+     "procedure": "R2",
+     "result": "failure"
+    },
+    {
+     "procedure": "R1",
+     "result": "success"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "step": "agent B restarts and reuses A's fix",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "R1",
+    "explanation": "R1 is a proven fix for sessions-lost on checkout@2. The only required assumption, that checkout session cache runs Redis 6, still holds per the latest evidence (Redis 6.2 on all cache nodes). R2 is not reusable because it was not proven."
+   },
+   "reusable": [
+    "R1"
+   ],
+   "pass": true
+  },
+  {
+   "step": "irrelevant change: B still reuses it",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "R1",
+    "explanation": "R1 was proven successful for sessions-lost on checkout@2, and its only assumption still holds: the checkout session cache runs Redis 6, confirmed as Redis 6.2 on all cache nodes."
+   },
+   "pass": true
+  },
+  {
+   "step": "relevant change: B refuses the stale fix",
+   "answer": {
+    "status": "UNKNOWN",
+    "explanation": "For checkout@2 with sessions-lost, the remembered procedures are not safe to reuse. R1 was proven before, but its required assumption that the checkout session cache runs Redis 6 no longer holds because the cache is now Redis 7. R2 was not proven successful. Therefore no remembered procedure is currently reusable."
+   },
+   "reusable": [],
+   "pass": true
+  }
+ ],
+ "usage": {
+  "requests": 12,
+  "in": 7547,
+  "out": 630
+ }
+}

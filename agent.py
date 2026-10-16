@@ -47,16 +47,24 @@ the tools first, then submit with choose_procedure."""
 
 
 class Session:
-    def __init__(self, events, case, mode):
+    def __init__(self, events, case, mode, graph=None):
+        """events=None means: use the memory already persisted in `graph` (a restarted agent)."""
         self.events, self.c, self.mode = events, case, mode
-        self.g = rb.connect(f"rb_agent_{mode}")
-        rb.load(self.g, events)
+        self.g = rb.connect(graph or f"rb_agent_{mode}")
+        if events is not None:
+            rb.load(self.g, events)
         self.answer, self.looked = None, False
+
+    def known(self):
+        if self.events is None:
+            return {r["procedure"] for r in rb.rows(self.g, "MATCH (:Tenant {id:$t})-[:HAS_PROCEDURE]->(p) RETURN p.id AS procedure",
+                                                       {"t": self.c["tenant"]})}
+        return {e["procedure"] for e in baseline.memory_log(self.events, self.c["tenant"]) if "procedure" in e}
 
     def validate(self, a):
         errs = []
         if a.get("status") == "REUSE":
-            known = {e["procedure"] for e in baseline.memory_log(self.events, self.c["tenant"]) if "procedure" in e}
+            known = self.known()
             if a.get("procedure") not in known:
                 errs.append("procedure must be a procedure id from this team's memory, such as P1")
         elif a.get("status") != "UNKNOWN":
@@ -85,8 +93,8 @@ class Session:
         return {"error": f"unknown tool {name}"}
 
 
-def run(case, events, mode, emit=lambda e: None):
-    s = Session(events, case, mode)
+def run(case, events, mode, emit=lambda e: None, graph=None):
+    s = Session(events, case, mode, graph)
     client = openai.OpenAI()
     msgs = [{"role": "system", "content": SYSTEM},
             {"role": "user", "content": f"Team: {case['tenant']}. Component version: {case['version']}. "
@@ -120,6 +128,11 @@ def run(case, events, mode, emit=lambda e: None):
 
 
 if __name__ == "__main__":
+    if "--live" in sys.argv:   # agent B on the persisted memory: --live graph tenant version symptom
+        g, t, v, sym = sys.argv[sys.argv.index("--live") + 1:][:4]
+        out = run({"tenant": t, "version": v, "symptom": sym}, None, "graph", graph=g)
+        print(json.dumps(out))
+        sys.exit()
     import eval as ev
     fx = json.loads((HERE / "fixture.json").read_text())
     if "--heldout" in sys.argv:

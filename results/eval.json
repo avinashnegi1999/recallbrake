@@ -886,6 +886,11 @@
   "stale_snapshot_complete_rejected": true,
   "fresh_claim_completes": true,
   "duplicate_complete_rejected": true,
-  "memory_survives_reconnect": true
+  "memory_survives_reconnect": true,
+  "out_of_order_complete_rejected": true,
+  "duplicate_claim_replays_same_result": true,
+  "duplicate_complete_replays_ack": true,
+  "crash_before_ack_retry_is_safe": true,
+  "other_agent_blocked_after_crash": true
  }
 }

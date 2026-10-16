@@ -158,14 +158,33 @@ class Writer:
                           MERGE (k)-[:DEPENDS_ON]->(a) RETURN k.id AS task""",
                        {"t": tenant, "k": tid, "title": title, "a": depends_on})
 
-    def claim(self, tenant, task, agent):
-        """Claim an unowned task. Binds the claim to a generation and the evidence snapshot."""
-        out = self._w("""
-            MATCH (:Tenant {id:$t})-[:HAS_TASK]->(k:Task {id:$k})-[:DEPENDS_ON]->(:Assumption)-[:HAS_REVISION]->(r)
-            WITH k, max(r.rev) AS snap
-            WHERE k.owner IS NULL AND k.done IS NULL
-            SET k.owner = $agent, k.gen = coalesce(k.gen, 0) + 1, k.snapshot = snap
-            RETURN k.gen AS gen, k.snapshot AS snapshot""", {"t": tenant, "k": task, "agent": agent})
+    def _replay(self, tenant, rid):
+        """A request id already applied returns its original result instead of running again."""
+        if rid is None:
+            return None
+        r = rows(self.g, "MATCH (q:Request {id:$rid, tenant:$t}) RETURN q.op AS op, q.ok AS ok, q.gen AS gen, q.snapshot AS snapshot",
+                 {"rid": rid, "t": tenant})
+        if not r:
+            return None
+        out = {k: v for k, v in r[0].items() if v is not None and k != "op"}
+        return {**out, "replayed": True}
+
+    def claim(self, tenant, task, agent, rid=None):
+        """Claim an unowned task. Binds the claim to a generation and the evidence snapshot.
+        With a request id, the claim and its record are written in one statement, so a retry
+        after a crash returns the original result and never claims twice."""
+        with self.lock:
+            prev = self._replay(tenant, rid)
+            if prev:
+                return prev
+            out = rows(self.g, """
+                MATCH (:Tenant {id:$t})-[:HAS_TASK]->(k:Task {id:$k})-[:DEPENDS_ON]->(:Assumption)-[:HAS_REVISION]->(r)
+                WITH k, max(r.rev) AS snap
+                WHERE k.owner IS NULL AND k.done IS NULL
+                SET k.owner = $agent, k.gen = coalesce(k.gen, 0) + 1, k.snapshot = snap
+                FOREACH (_ IN CASE WHEN $rid IS NULL THEN [] ELSE [1] END |
+                    CREATE (:Request {id:$rid, tenant:$t, op:'claim', ok:true, gen:k.gen, snapshot:snap}))
+                RETURN k.gen AS gen, k.snapshot AS snapshot""", {"t": tenant, "k": task, "agent": agent, "rid": rid})
         return {"ok": True, **out[0]} if out else {"ok": False, "reason": "not available: already claimed, done, or not this tenant's task"}
 
     def release(self, tenant, task, agent):
@@ -174,14 +193,21 @@ class Writer:
                          SET k.owner = null RETURN k.id AS task""", {"t": tenant, "k": task, "agent": agent})
         return {"ok": bool(out)}
 
-    def complete(self, tenant, task, agent, gen, snapshot):
-        """Complete only as the current owner, with the same claim generation and unchanged evidence."""
-        out = self._w("""
-            MATCH (:Tenant {id:$t})-[:HAS_TASK]->(k:Task {id:$k})-[:DEPENDS_ON]->(:Assumption)-[:HAS_REVISION]->(r)
-            WITH k, max(r.rev) AS cur
-            WHERE k.owner = $agent AND k.gen = $gen AND k.snapshot = $snapshot AND cur = $snapshot AND k.done IS NULL
-            SET k.done = true
-            RETURN k.id AS task""", {"t": tenant, "k": task, "agent": agent, "gen": gen, "snapshot": snapshot})
+    def complete(self, tenant, task, agent, gen, snapshot, rid=None):
+        """Complete only as the current owner, with the same claim generation and unchanged evidence.
+        A retried request id returns the original acknowledgment."""
+        with self.lock:
+            prev = self._replay(tenant, rid)
+            if prev:
+                return prev
+            out = rows(self.g, """
+                MATCH (:Tenant {id:$t})-[:HAS_TASK]->(k:Task {id:$k})-[:DEPENDS_ON]->(:Assumption)-[:HAS_REVISION]->(r)
+                WITH k, max(r.rev) AS cur
+                WHERE k.owner = $agent AND k.gen = $gen AND k.snapshot = $snapshot AND cur = $snapshot AND k.done IS NULL
+                SET k.done = true
+                FOREACH (_ IN CASE WHEN $rid IS NULL THEN [] ELSE [1] END |
+                    CREATE (:Request {id:$rid, tenant:$t, op:'complete', ok:true}))
+                RETURN k.id AS task""", {"t": tenant, "k": task, "agent": agent, "gen": gen, "snapshot": snapshot, "rid": rid})
         if out:
             return {"ok": True}
         st = rows(self.g, """MATCH (:Tenant {id:$t})-[:HAS_TASK]->(k:Task {id:$k})-[:DEPENDS_ON]->(:Assumption)-[:HAS_REVISION]->(r)

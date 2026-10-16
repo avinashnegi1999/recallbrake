@@ -1,7 +1,7 @@
 """Deterministic eval: graph memory vs the reuse-latest-fix baseline, graded by an
 authored ledger that must agree with the independent oracle; plus coordination
 invariants. No model calls.  Run: python eval.py   (writes results/eval.json)"""
-import copy, json, os
+import copy, json, os, subprocess, sys
 from pathlib import Path
 
 import baseline, recallbrake as rb
@@ -76,6 +76,23 @@ def invariants():
     res["duplicate_complete_rejected"] = not w.complete("acme", "T1", "agent-b", c["gen"], c["snapshot"])["ok"]
     # memory survives a new connection (a restarted agent)
     res["memory_survives_reconnect"] = rb.applicable(rb.connect("rb_eval_claims"), "acme", "checkout@1", "sessions-lost") == ["P1"]
+    # retries: idempotent request ids, out-of-order requests, crash between write and acknowledgment
+    w.task("acme", "T2", "Rebuild the order index", "S2")
+    res["out_of_order_complete_rejected"] = not w.complete("acme", "T2", "agent-a", 1, 1, rid="early")["ok"]
+    c1 = w.claim("acme", "T2", "agent-a", rid="req-1")
+    c2 = w.claim("acme", "T2", "agent-a", rid="req-1")
+    res["duplicate_claim_replays_same_result"] = c2.get("replayed") and c2["gen"] == c1["gen"]
+    d1 = w.complete("acme", "T2", "agent-a", c1["gen"], c1["snapshot"], rid="req-2")
+    d2 = w.complete("acme", "T2", "agent-a", c1["gen"], c1["snapshot"], rid="req-2")
+    res["duplicate_complete_replays_ack"] = d1["ok"] and d2.get("replayed") and d2["ok"]
+    w.task("acme", "T3", "Re-index search", "S2")
+    crash = ("import os, recallbrake as rb; w = rb.Writer(rb.connect('rb_eval_claims')); "
+             "w.claim('acme', 'T3', 'agent-a', rid='req-crash'); os._exit(3)")   # write lands, process dies before the ack
+    p = subprocess.run([sys.executable, "-c", crash], cwd=HERE)
+    retry = rb.Writer(rb.connect("rb_eval_claims")).claim("acme", "T3", "agent-a", rid="req-crash")
+    gen = rb.rows(g, "MATCH (k:Task {id:'T3', tenant:'acme'}) RETURN k.gen AS gen, k.owner AS owner")[0]
+    res["crash_before_ack_retry_is_safe"] = p.returncode == 3 and retry.get("replayed") and gen == {"gen": 1, "owner": "agent-a"}
+    res["other_agent_blocked_after_crash"] = not w.claim("acme", "T3", "agent-b", rid="req-b")["ok"]
     return res
 
 
