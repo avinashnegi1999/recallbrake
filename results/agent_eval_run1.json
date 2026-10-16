@@ -1,0 +1,457 @@
+{
+ "total_usage": {
+  "requests": 61,
+  "in": 45564,
+  "out": 3395
+ },
+ "runs": [
+  {
+   "case": "h01",
+   "mode": "graph",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P1",
+    "explanation": "P1 was proven successful for sessions-lost, is applicable to checkout@2, and its only assumption still holds: the session cache runs Redis 6, confirmed as Redis 6.2 on all cache nodes."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 3,
+    "in": 2400,
+    "out": 154
+   }
+  },
+  {
+   "case": "h01",
+   "mode": "json",
+   "answer": {
+    "status": "UNKNOWN",
+    "explanation": "For checkout@2, P1 was successful for sessions-lost and its assumption S1 still holds (Redis 6.2 confirmed on all cache nodes). However, the latest correction for the only checkout@2 sessions-lost success, P2, says the apparent recovery was actually due to a concurrent cache restart, so P2 is not safe to reuse. P4 failed. Because the symptom could require either cache-worker restart or key rotation and the evidence does not establish that P1 is the right current fix for this specific case, I should not reuse a procedure."
+   },
+   "grade": {
+    "correct": false,
+    "stale_reuse": false,
+    "unwarranted_refusal": true
+   },
+   "usage": {
+    "requests": 2,
+    "in": 1535,
+    "out": 151
+   }
+  },
+  {
+   "case": "h02",
+   "mode": "graph",
+   "answer": {
+    "status": "UNKNOWN",
+    "explanation": "No remembered procedure is safe to reuse for checkout@1 sessions-lost. P1 was previously successful, but its required assumption that the session cache runs Redis 6 no longer holds (Redis 7 rollout completed), so it is not applicable. P4 was not proven and is marked not applicable."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 4,
+    "in": 3479,
+    "out": 194
+   }
+  },
+  {
+   "case": "h02",
+   "mode": "json",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P3",
+    "explanation": "For acme checkout@1 with symptom sessions-lost, the only previously successful reusable procedure on this version is P1 (restart the session cache worker), and its required assumption S1 currently does not hold. P2 succeeded only on checkout@2, and P4 failed. Therefore the safe reusable procedure is none; however since a procedure is required only when REUSE, I must choose UNKNOWN."
+   },
+   "grade": {
+    "correct": false,
+    "stale_reuse": true,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 2,
+    "in": 1598,
+    "out": 122
+   }
+  },
+  {
+   "case": "h03",
+   "mode": "graph",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P2",
+    "explanation": "P2 is proven successful for sessions-lost, is applicable to checkout@2, and its only required assumption still holds: session signing keys live in the vault."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 3,
+    "in": 2380,
+    "out": 143
+   }
+  },
+  {
+   "case": "h03",
+   "mode": "json",
+   "answer": {
+    "status": "UNKNOWN",
+    "explanation": "No remembered procedure is safe to reuse for sessions-lost on checkout@2. P1 depended on S1, but S1 was later revised to false (Redis 7 rollout completed), so its assumption no longer holds. P2 was successful on checkout@2 and requires S4, which still holds, but the latest evidence does not show that key rotation is safe to reuse now for this case; it may have already been used and the current symptom could have a different cause. P4 failed previously. Therefore I cannot safely reuse a remembered procedure."
+   },
+   "grade": {
+    "correct": false,
+    "stale_reuse": false,
+    "unwarranted_refusal": true
+   },
+   "usage": {
+    "requests": 2,
+    "in": 1523,
+    "out": 147
+   }
+  },
+  {
+   "case": "h04",
+   "mode": "graph",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P6",
+    "explanation": "P6 was successful for orders-stuck on checkout@1 and is marked applicable. Its only assumption, that the dead-letter queue retains failed orders for 7 days, currently holds according to the latest evidence. P3 is not reusable because its required at-least-once queue delivery assumption no longer holds."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 3,
+    "in": 2174,
+    "out": 172
+   }
+  },
+  {
+   "case": "h04",
+   "mode": "json",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P6",
+    "explanation": "P6 previously succeeded for the same symptom orders-stuck on checkout@1, and its dependency S6 still holds: the DLQ retention is confirmed at 7 days. The later change to S2 does not affect P6 because it depends on S6, not queue delivery semantics."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 2,
+    "in": 1675,
+    "out": 106
+   }
+  },
+  {
+   "case": "h05",
+   "mode": "graph",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P1",
+    "explanation": "Procedure P1 was proven to fix sessions-lost on checkout@1, and the required assumption still holds: checkout sessions are stored in Postgres (confirmed in latest evidence)."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 3,
+    "in": 1822,
+    "out": 145
+   }
+  },
+  {
+   "case": "h05",
+   "mode": "json",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P1",
+    "explanation": "Memory shows procedure P1 successfully resolved sessions-lost on checkout@1, and its required assumption S1 (Checkout sessions are stored in Postgres; sessions table confirmed) still holds in the latest evidence."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 2,
+    "in": 846,
+    "out": 83
+   }
+  },
+  {
+   "case": "h06",
+   "mode": "graph",
+   "answer": {
+    "status": "UNKNOWN",
+    "explanation": "I found a previously successful procedure for sessions-lost: P1 'Vacuum the sessions table'. However, it was only supported on checkout@1, while the current component version is checkout@2. No applicable remembered procedures were returned for checkout@2, so I cannot safely reuse P1."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 3,
+    "in": 1646,
+    "out": 164
+   }
+  },
+  {
+   "case": "h06",
+   "mode": "json",
+   "answer": {
+    "status": "UNKNOWN",
+    "explanation": "A remembered fix exists for sessions-lost: P1 vacuum the sessions table. However, it was only recorded as successful on checkout@1. The current case is checkout@2, and I do not have evidence that the same assumptions and procedure remain valid on this version. Therefore no remembered procedure is safe to reuse."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 2,
+    "in": 846,
+    "out": 100
+   }
+  },
+  {
+   "case": "h07",
+   "mode": "graph",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P3",
+    "explanation": "P3 is proven on checkout@2 for orders-stuck, and its only required assumption still holds: the order queue delivers each message at least once. The alternative remembered procedure P7 is not applicable because consumer autoscaling is currently disabled."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 3,
+    "in": 2198,
+    "out": 158
+   }
+  },
+  {
+   "case": "h07",
+   "mode": "json",
+   "answer": {
+    "status": "UNKNOWN",
+    "explanation": "For checkout@2 and symptom orders-stuck, two remembered procedures exist: P3 (drain the order queue, then restart consumers) and P7 (scale consumers to zero and back). P3 is supported by S2, which still holds, and it previously succeeded on checkout@1 and checkout@2. However, the newer evidence shows S8 no longer holds because autoscaler is disabled, so P7 is not safe to reuse. Because the task asks for a procedure safe to reuse now, and I cannot confirm whether P3 remains appropriate without current operational confirmation beyond the remembered log, I am returning UNKNOWN rather than risking an unsupported reuse."
+   },
+   "grade": {
+    "correct": false,
+    "stale_reuse": false,
+    "unwarranted_refusal": true
+   },
+   "usage": {
+    "requests": 2,
+    "in": 1667,
+    "out": 167
+   }
+  },
+  {
+   "case": "h08",
+   "mode": "graph",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P1",
+    "explanation": "P1 is proven for sessions-lost, is applicable to checkout@1, and its only assumption (session cache runs Redis 6) still holds per latest evidence: Redis 6.2 is confirmed on all cache nodes. Other remembered procedures are not applicable to checkout@1."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 3,
+    "in": 2560,
+    "out": 213
+   }
+  },
+  {
+   "case": "h08",
+   "mode": "json",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P1",
+    "explanation": "P1 previously solved sessions-lost on checkout@1, and its requirement S1 still holds (Redis 6.2 confirmed on all cache nodes). The other sessions-lost procedures are not safe to reuse here: P2 is only recorded for checkout@2, P4 failed, and P8 is only recorded for checkout@2."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 2,
+    "in": 1565,
+    "out": 117
+   }
+  },
+  {
+   "case": "h09",
+   "mode": "graph",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P1",
+    "explanation": "P1 is a proven fix for sessions-lost, is applicable to checkout@2, and its only required assumption still holds: Redis 6 is confirmed on all cache nodes."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 4,
+    "in": 3556,
+    "out": 164
+   }
+  },
+  {
+   "case": "h09",
+   "mode": "json",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P2",
+    "explanation": "For acme checkout@2, procedure P2 previously succeeded for the same symptom 'sessions-lost' and is version-compatible (checkout@2). Its required assumption S4 still holds: session signing keys live in the vault and are loaded from the vault at boot. Therefore P2 is safe to reuse now."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 2,
+    "in": 1529,
+    "out": 105
+   }
+  },
+  {
+   "case": "h10",
+   "mode": "graph",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P9",
+    "explanation": "P9 is proven for sessions-lost, is applicable to checkout@1, and its required assumption still holds: the Redis 7 compatibility flag is set on all nodes. P1 is not safe because it depends on Redis 6, which no longer holds; P4 was not proven."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 3,
+    "in": 2529,
+    "out": 169
+   }
+  },
+  {
+   "case": "h10",
+   "mode": "json",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P9",
+    "explanation": "P9 is the only remembered successful procedure for sessions-lost on checkout@1. Its dependency S10 still holds (Redis 7 compatibility flag is set on all nodes), and the older sessions-lost fix P1 depended on S1, which no longer holds after the Redis 7 rollout. P2 is not reusable because it was only successful on checkout@2, and P4 failed."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 2,
+    "in": 1672,
+    "out": 122
+   }
+  },
+  {
+   "case": "h11",
+   "mode": "graph",
+   "answer": {
+    "status": "UNKNOWN",
+    "explanation": "No remembered procedure is safe to reuse for checkout@2 sessions-lost. P1 and P2 were successful historically, but their required assumptions no longer hold (Redis 6 is no longer used; signing keys no longer live in the vault). P4 was not proven successful."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 2,
+    "in": 1344,
+    "out": 142
+   }
+  },
+  {
+   "case": "h11",
+   "mode": "json",
+   "answer": {
+    "status": "UNKNOWN",
+    "explanation": "For checkout@2, the only successful remembered sessions-lost procedure that now fits the latest evidence is P1, but its required assumption S1 no longer holds because Redis 7 rollout completed. P2 also succeeded on checkout@2, but its required assumption S4 no longer holds because keys moved out of the vault. P4 failed before. No remembered procedure is safe to reuse now."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 2,
+    "in": 1560,
+    "out": 115
+   }
+  },
+  {
+   "case": "h12",
+   "mode": "graph",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P3",
+    "explanation": "P3 is a proven fix for orders-stuck on checkout@1, with a successful prior attempt (A2). It is marked applicable for checkout@1, and its required assumption S2 still holds in the latest evidence."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 3,
+    "in": 1902,
+    "out": 156
+   }
+  },
+  {
+   "case": "h12",
+   "mode": "json",
+   "answer": {
+    "status": "REUSE",
+    "procedure": "P3",
+    "explanation": "P3 previously succeeded for the same symptom 'orders-stuck' on checkout@1, and its dependency S2 still holds per the latest evidence (queue configured for at-least-once delivery and re-verified)."
+   },
+   "grade": {
+    "correct": true,
+    "stale_reuse": false,
+    "unwarranted_refusal": false
+   },
+   "usage": {
+    "requests": 2,
+    "in": 1558,
+    "out": 86
+   }
+  }
+ ]
+}

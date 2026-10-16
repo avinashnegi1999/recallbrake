@@ -1,0 +1,27 @@
+h01 graph correct=True stale=False got=['P1'] expect=['P1'] req=3
+h01 json  correct=False stale=False got=UNKNOWN expect=['P1'] req=2
+h02 graph correct=True stale=False got=UNKNOWN expect=UNKNOWN req=4
+h02 json  correct=False stale=True got=['P3'] expect=UNKNOWN req=2
+h03 graph correct=True stale=False got=['P2'] expect=['P2'] req=3
+h03 json  correct=False stale=False got=UNKNOWN expect=['P2'] req=2
+h04 graph correct=True stale=False got=['P6'] expect=['P6'] req=3
+h04 json  correct=True stale=False got=['P6'] expect=['P6'] req=2
+h05 graph correct=True stale=False got=['P1'] expect=['P1'] req=3
+h05 json  correct=True stale=False got=['P1'] expect=['P1'] req=2
+h06 graph correct=True stale=False got=UNKNOWN expect=UNKNOWN req=3
+h06 json  correct=True stale=False got=UNKNOWN expect=UNKNOWN req=2
+h07 graph correct=True stale=False got=['P3'] expect=['P3'] req=3
+h07 json  correct=False stale=False got=UNKNOWN expect=['P3'] req=2
+h08 graph correct=True stale=False got=['P1'] expect=['P1'] req=3
+h08 json  correct=True stale=False got=['P1'] expect=['P1'] req=2
+h09 graph correct=True stale=False got=['P1'] expect=['P1', 'P2', 'P4'] req=4
+h09 json  correct=True stale=False got=['P2'] expect=['P1', 'P2', 'P4'] req=2
+h10 graph correct=True stale=False got=['P9'] expect=['P9'] req=3
+h10 json  correct=True stale=False got=['P9'] expect=['P9'] req=2
+h11 graph correct=True stale=False got=UNKNOWN expect=UNKNOWN req=2
+h11 json  correct=True stale=False got=UNKNOWN expect=UNKNOWN req=2
+h12 graph correct=True stale=False got=['P3'] expect=['P3'] req=3
+h12 json  correct=True stale=False got=['P3'] expect=['P3'] req=2
+graph 12/12 correct, stale reuse 0, unwarranted refusal 0
+json 8/12 correct, stale reuse 1, unwarranted refusal 3
+total usage {'requests': 61, 'in': 45564, 'out': 3395}

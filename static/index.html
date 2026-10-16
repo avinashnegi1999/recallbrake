@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RecallBrake</title>
+<style>
+  :root { --bg:#f5f5f7; --fg:#1d1d1f; --mute:#6e6e73; --card:#fff; --line:#e3e3e8; --soft:#f5f5f7;
+          --ok:#1a7f37; --okbg:#eaf6ed; --bad:#c4002f; --badbg:#fdecef; --acc:#0066cc; --accbg:#e8f1fb; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#000; --fg:#f5f5f7; --mute:#a1a1a6; --card:#1c1c1e; --line:#2c2c2e; --soft:#2c2c2e;
+          --ok:#4ac26b; --okbg:#12261a; --bad:#ff6b81; --badbg:#2b1117; --acc:#4da3ff; --accbg:#0f2236; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  main { max-width:1180px; margin:0 auto; padding:28px 16px 48px; }
+  header { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+  h1 { font-size:28px; margin:0; letter-spacing:-.02em; } .tag { color:var(--mute); font-size:15px; }
+  .controls { display:flex; gap:10px; margin:22px 0 14px; flex-wrap:wrap; align-items:center; }
+  select, button { font:inherit; font-size:14px; padding:8px 12px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
+  button { cursor:pointer; } button.primary { background:var(--fg); color:var(--bg); border-color:var(--fg); }
+  .steps { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .grid { display:grid; grid-template-columns:1.25fr 1fr; gap:16px; align-items:start; }
+  @media (max-width: 860px) { .grid { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:20px 22px; }
+  .k { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--mute); margin-bottom:10px; }
+  .proc { border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-top:12px; }
+  .proc.ok { border-color:var(--ok); background:var(--okbg); } .proc.no { opacity:.92; }
+  .ptop { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .pill { font-size:12px; font-weight:800; letter-spacing:.08em; padding:3px 10px; border-radius:999px; white-space:nowrap; }
+  .pill.ok { color:var(--ok); background:var(--card); border:1px solid var(--ok); } .pill.no { color:var(--bad); background:var(--badbg); }
+  .title { font-weight:700; font-size:17px; } .mute { color:var(--mute); font-size:14px; }
+  .need { margin-top:8px; font-size:14px; display:flex; gap:8px; } .need .x { color:var(--bad); font-weight:700; } .need .v { color:var(--ok); font-weight:700; }
+  .row { display:flex; gap:10px; padding:8px 0; border-top:1px solid var(--line); font-size:14px; } .row:first-of-type { border-top:0; }
+  .res-success { color:var(--ok); font-weight:700; } .res-failure { color:var(--bad); font-weight:700; }
+  .log div { padding:6px 0; border-top:1px solid var(--line); font-size:14px; } .log div:first-child { border-top:0; }
+  .full { margin-top:16px; }
+</style>
+</head>
+<body>
+<main>
+  <header><h1>RecallBrake</h1><span class="tag">Shared agent memory in FalkorDB that knows when yesterday's fix stops applying.</span></header>
+  <div class="controls">
+    <select id="tenant" aria-label="Team"><option value="acme">Team: acme</option><option value="globex">Team: globex</option></select>
+    <select id="version" aria-label="Version"><option>checkout@1</option><option>checkout@2</option></select>
+    <select id="symptom" aria-label="Symptom"><option value="sessions-lost">Symptom: sessions lost</option><option value="orders-stuck">Symptom: orders stuck</option></select>
+    <button id="reset">Reset memory</button>
+  </div>
+  <div class="steps" id="steps"></div>
+  <div class="grid">
+    <div class="card" id="procs"></div>
+    <div class="card" id="cases"></div>
+  </div>
+  <div class="card full"><div class="k">Coordination · two agents, one task</div>
+    <button class="primary" id="race">Run the claim race</button><div class="log" id="log" style="margin-top:12px"></div></div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function load() {
+  const r = await (await fetch(`/api/state?tenant=${$("tenant").value}&version=${$("version").value}&symptom=${$("symptom").value}`)).json();
+  $("steps").innerHTML = Object.entries(r.steps).map(([k, l]) => `<button data-step="${k}">${esc(l)}</button>`).join("");
+  document.querySelectorAll("[data-step]").forEach(b => b.onclick = async () => { await fetch("/api/step", {method:"POST", body: JSON.stringify({step: b.dataset.step})}); load(); });
+  const reusable = r.procedures.filter(p => p.applicable);
+  let h = `<div class="k">What agent B may reuse · ${esc(r.tenant)} · ${esc(r.version)}</div>`;
+  h += reusable.length ? `<div class="title" id="verdict">Reuse ${reusable.map(p => esc(p.procedure)).join(" or ")}</div>`
+                       : `<div class="title" id="verdict" style="color:var(--bad)">UNKNOWN: no remembered fix is safe here</div>`;
+  for (const p of r.procedures) {
+    const why = !p.proven ? "never worked" : p.needs.filter(n => !n.holds).map(n => `${n.assumption} no longer holds`).join(", ");
+    h += `<div class="proc ${p.applicable ? "ok" : "no"}"><div class="ptop"><span class="title">${esc(p.procedure)} · ${esc(p.title)}</span>
+      <span class="pill ${p.applicable ? "ok" : "no"}">${p.applicable ? "REUSABLE" : "BLOCKED"}</span></div>
+      ${p.applicable ? "" : `<div class="mute">${esc(why)}</div>`}
+      ${p.needs.map(n => `<div class="need"><span class="${n.holds ? "v" : "x"}">${n.holds ? "✓" : "✕"}</span><span><b>${esc(n.assumption)}</b> ${esc(n.text)} <span class="mute">· rev ${n.rev}: ${esc(n.note)}</span></span></div>`).join("")}</div>`;
+  }
+  if (!r.procedures.length) h += `<p class="mute">This team has no memory for this version and symptom.</p>`;
+  $("procs").innerHTML = h;
+  $("cases").innerHTML = `<div class="k">Episodic memory · what was tried</div>` + (r.cases.length ? r.cases.map(c =>
+    `<div class="row"><span class="mute">${esc(c.case)}</span><span>${esc(c.title)} <span class="mute">by ${esc(c.agent)}</span></span>
+     <span class="res-${esc(c.result)}" style="margin-left:auto">${esc(c.result)}</span></div>`).join("") : `<p class="mute">Nothing yet.</p>`);
+}
+$("race").onclick = async () => {
+  const r = await (await fetch("/api/race", {method:"POST"})).json();
+  $("log").innerHTML = r.log.map(x => `<div><b>${esc(x.who)}</b> ${esc(x.did)} · <span class="${x.ok ? "res-success" : "res-failure"}">${x.ok ? "accepted" : "rejected"}</span></div>`).join("");
+};
+$("reset").onclick = async () => { await fetch("/api/reset", {method:"POST"}); load(); };
+["tenant","version","symptom"].forEach(id => $(id).onchange = load);
+window.RB = { load, set: async (t, v, s) => { $("tenant").value = t; $("version").value = v; $("symptom").value = s; await load(); } };
+load();
+</script>
+</body>
+</html>
