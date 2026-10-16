@@ -98,4 +98,5 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     print("RecallBrake demo on http://localhost:8003")
+    ThreadingHTTPServer.allow_reuse_address = False   # a second copy fails loudly instead of sharing the port
     ThreadingHTTPServer(("127.0.0.1", 8003), Handler).serve_forever()
