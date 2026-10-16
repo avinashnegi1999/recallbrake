@@ -25,13 +25,22 @@ latest fix that worked is how teams repeat yesterday's answer after the system c
 
 All writes go through one serialized writer. Only one agent can claim a task. A completion counts
 only if it comes from the current owner, with the same claim generation, and the evidence has not
-changed since the claim. A stale or duplicate completion is rejected.
+changed since the claim. Requests carry ids: a retry returns the original result instead of acting
+twice, even if the agent crashed after the write and before it heard back.
+
+## Two agents, one memory.
+
+Agent A, a model on duty with an empty team memory, tries runbook fixes on a new case. A simulator
+decides whether each try worked, and the server saves every attempt; the model never writes a result.
+Agent B then starts in a new process, finds A's proven fix and reuses it. After an irrelevant change
+it still reuses it. After the cache is upgraded, it refuses it.
 
 ## Tested on held-out histories.
 
 **12/12** held-out cases with the graph · **9/12** for the common "reuse the latest fix" rule ·
 an agent with graph memory tools **12/12 in both runs**, versus **8/12 and 7/12** for the same
-model reading the same memory as a JSON log · **9/9** coordination invariants ·
+model reading the same memory as a JSON log · two-agent handoff **4/4 in both runs** ·
+**14/14** coordination and retry invariants ·
 [How it was measured](docs/EVALUATION.md)
 
 ## Run it.
@@ -42,6 +51,7 @@ pip install -r requirements.txt
 python gate.py           # feasibility gate: restart, assumption change, claim race (no model)
 python eval.py           # deterministic eval vs oracle and baseline, plus invariants (no model)
 python server.py         # demo on http://localhost:8003
+python handoff.py        # agent A solves, agent B restarts and reuses or refuses (needs OPENAI_API_KEY)
 ```
 
 The agent needs `OPENAI_API_KEY` set in your environment. Run `python agent.py h03 graph --heldout`
@@ -106,10 +116,12 @@ RETURN k.id
 
 ### Agent
 
-The model (default `gpt-5.4-mini`) plays agent B, restarted with the team's memory. It acts only
-through `read_case_memory`, `find_applicable_procedures`, `inspect_support` and
-`choose_procedure`. It cannot write Cypher. The checker accepts only known procedure ids and an
-answer submitted after a lookup. It does not reveal the right answer.
+Both agents use the model (default `gpt-5.4-mini`) and act only through tools; neither can write
+Cypher. Agent A (`agent_a.py`) uses `find_applicable_procedures`, `list_runbook`, `try_procedure`
+and `finish`; `try_procedure` runs a deterministic simulator and the server records the attempt,
+scoped to the version tested. Agent B (`agent.py`) uses `read_case_memory`,
+`find_applicable_procedures`, `inspect_support` and `choose_procedure`. The checker accepts only
+known procedure ids and an answer submitted after a lookup. It does not reveal the right answer.
 
 ### Limitations
 
@@ -122,12 +134,13 @@ a fix is or is not reusable.
 ### AI disclosure
 
 An AI coding assistant was used to generate and debug code and to draft documentation. At
-runtime, an LLM (OpenAI `gpt-5.4-mini` by default) is agent B in the agent eval; the graph decides
-applicability. Every result reported here came from running the code in this repository.
+runtime, an LLM (OpenAI `gpt-5.4-mini` by default) runs agents A and B; a simulator decides
+whether a fix worked, and the graph decides whether it may be reused. Every result reported here came from running the code in this repository.
 
 ### Files
 
-`recallbrake.py` graph model, queries and single writer · `agent.py` tool-calling loop ·
+`recallbrake.py` graph model, queries and single writer · `agent_a.py` responder agent ·
+`agent.py` successor agent · `handoff.py` two-agent handoff test ·
 `oracle.py` independent reducer · `baseline.py` reuse-latest-fix rule and JSON memory log ·
 `gate.py` feasibility gate · `eval.py` deterministic eval and invariants · `agent_eval.py` paired
 agent runs · `server.py`, `static/` demo UI · `results/` raw records · `docs/EVALUATION.md`

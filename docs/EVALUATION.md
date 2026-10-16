@@ -27,10 +27,21 @@ Held-out histories were written after the dev fixture, oracle and agent prompt w
 later corrected to a failure, a failure corrected to a success, an assumption that flips back and
 forth, a procedure scoped to another version, and a newer fix whose assumption later failed.
 
-**Coordination invariants** (in `eval.py`): 9/9 hold. A second claim is rejected; another tenant
-cannot claim or complete; a reassigned task gets a new generation; the previous owner cannot
-complete; a completion after the evidence changed is rejected; a fresh claim completes; a
-duplicate completion is rejected; memory is still there after reconnecting.
+**Coordination and retry invariants** (in `eval.py`): 14/14 hold. A second claim is rejected;
+another tenant cannot claim or complete; a reassigned task gets a new generation; the previous owner
+cannot complete; a completion after the evidence changed is rejected; a fresh claim completes; a
+duplicate completion without a request id is rejected; memory is still there after reconnecting; a
+completion that arrives before its claim is rejected; a repeated claim or completion with the same
+request id returns the original result without acting twice; and when a process is killed right
+after its claim is written but before it hears back, the retry returns the original claim, the
+generation does not move, and another agent is still blocked.
+
+**Two-agent handoff** (`handoff.py`, each step in a fresh process, two runs, 12 and 13 requests).
+On a team with empty memory, agent A (a model) tried the runbook's "clear cookies" fix (failed,
+recorded) and then "restart the session cache worker" (worked, recorded). Agent B, restarted,
+reused that fix; after an irrelevant dashboard change it still reused it; after the cache was
+upgraded to Redis 7 it answered UNKNOWN. 4/4 steps passed in both runs
+(`results/handoff_run1.json`, `results/handoff_run2.json`).
 
 **Agent eval** (`agent_eval.py`, gpt-5.4-mini, two runs over the 12 held-out cases). Both modes
 use the same model, prompt, six-turn budget and answer checker. Graph mode uses the FalkorDB memory
