@@ -67,6 +67,8 @@ class Handler(SimpleHTTPRequestHandler):
                 ev = {k: v for k, v in STEPS[body["step"]].items() if k != "label"}
                 return self._json({"rev": rb.apply(W, ev)})
             if self.path == "/api/reset":
+                global RACES
+                RACES = 0
                 W = rb.load(G, BASE)
                 return self._json({"ok": True})
             if self.path == "/api/race":
