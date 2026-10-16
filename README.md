@@ -3,6 +3,8 @@
 
 <p align="center"><sub>Graph Hacks · Agent Memory and Coordination · Built on FalkorDB</sub></p>
 
+<p align="center"><b><a href="https://youtu.be/oWGaMXT8A_Q">▶ Watch the demo film (5 min)</a></b></p>
+
 ## Remembering a fix isn't enough.
 
 A support agent fixes a problem and saves the procedure. Tomorrow a different agent restarts,
